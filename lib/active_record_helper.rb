@@ -25,16 +25,11 @@ module ActionView
     end
     
     class InstanceTag #:nodoc:
-      alias __to_tag_enum to_tag
-
       # 拿到列的信息
-      def column
-        object.send(:column_for_attribute, @method_name)
-      end
       # Add the enumeration tag support. Defaults using the select tag to
       # display the options.
       def to_tag(options = {})
-        if column.enum?
+        if object.class.enum?(@method_name)
           to_enum_select_tag(options)
         else
           __to_tag_enum(options)
@@ -110,7 +105,7 @@ module ActionView
 
       # 根据模型获取Enum的选项
       def enum_options_from_model
-        column.enum? && column.enum_options
+        object.class.send("#{@method_name}_options")
       end
 
     end

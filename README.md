@@ -12,7 +12,7 @@ Example
 =======
 
   def self.up
-    create_table "person",:force => true do |t|
+    create_table "person", :force => true do |t|
       t.string   "name"
       t.string   "gender"
       t.integer  "rank",      :null => false
@@ -34,14 +34,14 @@ Example
 Generated class methods:
 
   Person.genders             # => [:male, :female]
-  Person.gender_alias        # => %w[male female]
+  Person.gender_aliases      # => %w[male female]
   Person.gender_labels       # => %w[Male Female]
-  Person.gender_enum_options # => [["Female", :female], ["Male", :male]]
+  Person.gender_options # => [["Female", :female], ["Male", :male]]
   
   Person.ranks             # => [1,2,3,4,5]
   Person.rank_aliases      # => %w[bad common good excellent awsome]
   Person.rank_labels       # => %w[Badone Common Goodman Excellent Awsome]
-  Person.rank_enum_options # => [['Badone', 1], ['Common', 2], ['Goodman', 3], ['Excellent', 4], ['Awsome', 5]]
+  Person.rank_options # => [['Badone', 1], ['Common', 2], ['Goodman', 3], ['Excellent', 4], ['Awsome', 5]]
 
 Generated instance methods:
 
@@ -56,20 +56,6 @@ Generated instance methods:
   person.good_rank?      # => false
   person.excellent_rank? # => false
   person.awsome_rank?    # => true
-
-Column Generated methods
-
-  name_column = Person.columns_hash["name"]
-  name_column.enum?      # => false
-  gender_column = Person.columns_hash["gender"]
-  gender_column.enum?    # => true
-  
-  gender_column.enum_values          # as Person.genders
-  gender_column.enum_aliases         # as Person.gender_aliases
-  gender_column.enum_labels          # as Person.gender_labels
-  gender_column.enum_options         # as Person.gender_enum_options
-  gender_column.enum_alias(:male)    # => 'male'
-  gender_column.enum_value('female') # => 'female'
  
 Generated Scopes:
   Person.male_genders    # where(:gender => :male)
