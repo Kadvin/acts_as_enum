@@ -134,6 +134,35 @@ describe ActiveModel::Acts::Enum do
     it "Model#\#{value}_\#{field}s to return records which \#{field}'s enum value equals to \#{value}"
   end
 
-
+  describe "value convert" do
+    it "when enum value was limited as Symbol, string value should be converted" do
+      class ModelK < AbstractModel
+        acts_as_enum :field, :value1, :value2
+      end
+      record = ModelK.new
+      record.field = "value1"
+      record.field.should == :value1
+    end
+    it "when enum value was limited as String, numeric/symbol value should be converted" do
+      class ModelL < AbstractModel
+        acts_as_enum :field, '1', '2'
+      end
+      record = ModelL.new
+      record.field = 1
+      record.field.should == '1'
+      record.field = :'1'
+      record.field.should == '1'
+    end
+    it "when enum value was limited as Numeric, string/symbol should be converted" do
+      class ModelM < AbstractModel
+        acts_as_enum :field, 1, 2
+      end
+      record = ModelM.new
+      record.field = '1'
+      record.field.should == 1
+      record.field = :'1'
+      record.field.should == 1
+    end
+  end
 end
 

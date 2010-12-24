@@ -4,8 +4,10 @@ module ActiveModel #:nodoc:
       # base is the active-record base class
       def self.included(base)
         base.extend(ClassMethods)
+        base.send(:include, InstanceMethods)
         base.send(:class_inheritable_hash, :enums)
         base.enums = {}
+        base.send(:alias_method_chain, :write_attribute, :enum) if base.respond_to? :write_attribute
       end
 
       module ClassMethods
@@ -67,24 +69,21 @@ module ActiveModel #:nodoc:
             end
           CODE
           class_eval do
-            # define methods for instance
             define_method field_name + "_alias" do
-              value = self.send(field)
-              return nil if value.nil?
-              store[:aliases][store[:values].index(value)]
+              target_by_value(store[:aliases], store[:values], field_name)
             end
             define_method field_name + "_label" do
-              value = self.send(field)
-              return nil if value.nil?
-              store[:labels][store[:values].index(value)]
+              target_by_value(store[:labels], store[:values], field_name)
             end
-            store[:aliases].each_with_index do |alias_value, index|
+            store[:aliases].each do |alias_value|
               define_method format("%s_%s?",alias_value.to_s.underscore, field) do
-                value = self.send(field)
-                return nil if value.nil?
-                store[:values].index(value) == index
+                alias_value == target_by_value(store[:aliases], store[:values], field_name)
               end
             end
+            # For active-model to alias_method_chain 
+            define_method field_name + "=" do |value|
+              instance_variable_set("@#{field_name}", converted_enum(field_name, value))
+            end unless respond_to?(:write_attribute) # None Active-Record
           end
           # validates for models with active-model validations
           allow_nil = options[:allow_nil].nil? ? true : options[:allow_nil]
@@ -103,12 +102,57 @@ module ActiveModel #:nodoc:
         end
         
         private
-          def i18n_labels(field, aliases)
-            aliases.map do |alias_value|
-              I18n.t(alias_value, :scope=>[self.name.underscore, field], :raise=>true) rescue alias_value.humanize
-            end
+        def i18n_labels(field, aliases)
+          aliases.map do |alias_value|
+            I18n.t(alias_value, :scope=>[self.name.underscore, field], :raise=>true) rescue alias_value.humanize
           end
+        end
+
       end
+
+      module InstanceMethods
+        # define methods for instance
+        def target_by_value(targets, values, field)
+          value = self.send(field)
+          return nil if value.nil?
+          value = converted_enum(field, value)
+          index = values.index(value)
+          targets[index]
+        end
+        def converted_enum(attr, value)
+          if store = self.class.enums[attr.to_sym]
+            if value.nil? # Nil need not be converted
+              value
+            elsif store[:values].index(value) # value was found in the enum values
+              value
+            else # conver the value according to the sample value klass
+              sample = store[:values].first
+              if value.class == sample.class # need not be converted for same klass
+                value
+              else
+                case sample
+                when Symbol then value.to_sym
+                when String then value.to_s
+                when Numeric then if Symbol === value
+                    value.to_s.to_i # :'1'.to_i => 120202, :'1'.to_s => '1'.to_i => 1
+                  else
+                    value.to_i
+                  end
+                end
+              end
+            end
+          else
+            value
+          end
+        end
+        private :target_by_value, :converted_enum
+        # Active record:: when a enum value was set ,convert it if necessary
+        def write_attribute_with_enum(attr, value)
+          write_attribute_without_enum attr, converted_enum(attr, value)
+        end
+
+      end
+
     end
 
   end
